@@ -53,3 +53,4 @@ Thumbs.db
 .env
 
 uploads
+/package-lock.json
