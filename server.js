@@ -77,7 +77,7 @@ app.use("", heathRoutes);
 app.use("/api/auth", authRoutes);
 
 app.get("/test", (req, res) => {
-  res.send("Test route is working 2/10!");
+  res.send("Test route is working 11/24!");
   console.log("test route is working");
 });
 
