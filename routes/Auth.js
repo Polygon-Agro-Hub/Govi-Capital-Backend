@@ -10,4 +10,6 @@ router.get(
   authEp.test
 );
 
+router.post('/login', authEp.userLogin);
+
 module.exports = router;
