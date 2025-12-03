@@ -11,5 +11,6 @@ router.get(
 );
 
 router.post('/login', authEp.userLogin);
+router.post('/register', authEp.userRegister);
 
 module.exports = router;

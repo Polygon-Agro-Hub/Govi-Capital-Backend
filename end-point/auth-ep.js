@@ -128,3 +128,108 @@ exports.userLogin = async (req, res) => {
     });
   }
 };
+
+exports.userRegister = async (req, res) => {
+  const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
+  console.log(fullUrl);
+
+  try {
+    console.log('Request body---', req.body);
+    
+    // Validate input
+    const validateSchema = await authValidation.registerSchema.validateAsync(req.body);
+    const { title, userName, phoneNumber, nic, email, address, password, confirmPassword } = validateSchema;
+    
+    console.log('Registration attempt with phone:', phoneNumber);
+
+    // Check if passwords match
+    if (password !== confirmPassword) {
+      return res.status(400).json({ 
+        status: false, 
+        message: "Passwords do not match." 
+      });
+    }
+
+    // Check if user already exists by phone
+    const phoneExists = await authDAO.checkUserExistsByPhone(phoneNumber);
+    if (phoneExists) {
+      return res.status(409).json({ 
+        status: false, 
+        message: "User with this phone number already exists." 
+      });
+    }
+
+    // Check if user already exists by email
+    const emailExists = await authDAO.checkUserExistsByEmail(email);
+    if (emailExists) {
+      return res.status(409).json({ 
+        status: false, 
+        message: "User with this email already exists." 
+      });
+    }
+
+    // Check if user already exists by NIC
+    const nicExists = await authDAO.checkUserExistsByNIC(nic);
+    if (nicExists) {
+      return res.status(409).json({ 
+        status: false, 
+        message: "User with this NIC already exists." 
+      });
+    }
+
+    console.log('Hashing password...');
+    // Hash password
+    const hashedPassword = bcrypt.hashSync(password, 10);
+
+    // Create user data object
+    const userData = {
+      title,
+      userName,
+      phoneNumber,
+      phoneCode: '+94',
+      nic,
+      email,
+      address,
+      password: hashedPassword
+    };
+
+    // Create user in database
+    const newUser = await authDAO.createUser(userData);
+    console.log('User created successfully with ID:', newUser.id);
+
+    // Get full user data without password
+    const createdUser = await authDAO.getUserById(newUser.id);
+
+    return res.status(201).json({
+      success: true,
+      message: "User registered successfully.",
+      userData: {
+        id: createdUser.id,
+        title: createdUser.title,
+        userName: createdUser.userName,
+        phoneCode: createdUser.phoneCode,
+        phoneNumber: createdUser.phoneNumber,
+        email: createdUser.email,
+        nic: createdUser.nic,
+        address: createdUser.address,
+        createdAt: createdUser.createdAt
+      }
+    });
+
+  } catch (err) {
+    console.error("Error during registration:", err);
+    
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ 
+        status: false, 
+        message: "Invalid input data.",
+        details: err.details 
+      });
+    }
+    
+    res.status(500).json({ 
+      status: false, 
+      error: "An error occurred during registration." 
+    });
+  }
+};

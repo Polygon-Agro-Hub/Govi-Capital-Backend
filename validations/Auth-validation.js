@@ -20,3 +20,14 @@ exports.loginSchema = Joi.object({
       'any.required': 'Password is required'
     })
 });
+
+exports.registerSchema = Joi.object({
+  title: Joi.string().required(),
+  userName: Joi.string().required(),
+  phoneNumber: Joi.string().required(),
+  nic: Joi.string().required(),
+  email: Joi.string().email().required(),
+  address: Joi.string().required(),
+  password: Joi.string().required(),
+  confirmPassword: Joi.string().required()
+});
