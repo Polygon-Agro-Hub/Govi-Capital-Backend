@@ -1,16 +1,13 @@
 const express = require("express");
-const authEp  = require("../end-point/auth-ep");
+const authEp = require("../end-point/auth-ep");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
-
-router.get(
-  "/test",
-  authEp.test
-);
+router.get("/test", authEp.test);
 
 router.post('/login', authEp.userLogin);
-router.post('/register', authEp.userRegister);
+router.post('/register', authEp.registerUser);
+router.post('/check-user', authEp.checkUserExists);
 
 module.exports = router;

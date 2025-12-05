@@ -1,21 +1,156 @@
-const authDAO = require("../dao/Auth-dao")
+const authDAO = require("../dao/Auth-dao");
 const authValidation = require("../validations/Auth-validation");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-
 exports.test = async (req, res) => {
   try {
-
     res.send("Test working.......");
   } catch (err) {
     if (err.isJoi) {
-      // Validation error
       return res.status(400).json({ error: err.details[0].message });
     }
-
     console.error("Error executing query:", err);
     res.status(500).send("An error occurred while fetching data.");
+  }
+};
+
+// Check if user exists by email or phone
+exports.checkUserExists = async (req, res) => {
+  try {
+    const { email, phoneNumber, phoneCode } = req.body;
+
+    // Validate input
+    if (!email && !phoneNumber) {
+      return res.status(400).json({
+        status: false,
+        message: "Email or phone number is required"
+      });
+    }
+
+    let existingUser = null;
+
+    // Check by email
+    if (email) {
+      existingUser = await authDAO.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({
+          status: false,
+          type: "email_exists",
+          message: "This email address is already registered. Please use a different email or try logging in."
+        });
+      }
+    }
+
+    // Check by phone number
+    if (phoneNumber) {
+      const normalizedPhone = phoneNumber.replace(/^0+/, '').substring(0, 9);
+      existingUser = await authDAO.loginUserByPhone(normalizedPhone);
+      if (existingUser) {
+        return res.status(409).json({
+          status: false,
+          type: "phone_exists",
+          message: "This phone number is already registered. Please use a different phone number or try logging in."
+        });
+      }
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "User details verified. Proceed with registration."
+    });
+
+  } catch (err) {
+    console.error("Error checking user existence:", err);
+    res.status(500).json({
+      status: false,
+      message: "An error occurred while verifying user details."
+    });
+  }
+};
+
+// Register new user
+exports.registerUser = async (req, res) => {
+  try {
+    console.log('Registration request body:', req.body);
+
+    // Validate input using Joi schema
+    const validateSchema = await authValidation.registerSchema.validateAsync(req.body);
+    
+    const {
+      title,
+      userName,
+      phoneNumber,
+      nic,
+      email,
+      address,
+      password
+    } = validateSchema;
+
+    // Normalize phone number (remove leading zeros, take last 9 digits)
+    const normalizedPhone = phoneNumber.replace(/^0+/, '').substring(0, 9);
+
+    // Check if user already exists
+    const existingUserByEmail = await authDAO.getUserByEmail(email);
+    if (existingUserByEmail) {
+      return res.status(409).json({
+        status: false,
+        type: "email_exists",
+        message: "This email address is already registered."
+      });
+    }
+
+    const existingUserByPhone = await authDAO.loginUserByPhone(normalizedPhone);
+    if (existingUserByPhone) {
+      return res.status(409).json({
+        status: false,
+        type: "phone_exists",
+        message: "This phone number is already registered."
+      });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create user object
+    const userData = {
+      title,
+      userName,
+      phoneNumber: normalizedPhone,
+      phoneCode: '+94', // Default to Sri Lanka
+      nic,
+      email,
+      address,
+      password: hashedPassword
+    };
+
+    // Insert user into database
+    const newUserId = await authDAO.createUser(userData);
+
+    console.log('User registered successfully with ID:', newUserId);
+
+    return res.status(201).json({
+      status: true,
+      message: "User registered successfully.",
+      userId: newUserId
+    });
+
+  } catch (err) {
+    console.error("Error during registration:", err);
+
+    if (err.name === 'ValidationError' || err.isJoi) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid input data.",
+        details: err.details || err.message
+      });
+    }
+
+    res.status(500).json({
+      status: false,
+      message: "An error occurred during registration."
+    });
   }
 };
 
@@ -32,8 +167,11 @@ exports.userLogin = async (req, res) => {
     
     console.log('Login attempt with phone:', phoneNumber);
     
+    // Normalize phone number
+    const normalizedPhone = phoneNumber.replace(/^0+/, '').substring(0, 9);
+    
     // Get user from database
-    const user = await authDAO.loginUserByPhone(phoneNumber);
+    const user = await authDAO.loginUserByPhone(normalizedPhone);
     
     console.log('User found:', user ? { 
       id: user.id, 
@@ -59,7 +197,6 @@ exports.userLogin = async (req, res) => {
     }
 
     console.log('Verifying password...');
-    console.log('Password hash from DB:', user.password.substring(0, 20) + '...');
     
     // Verify password
     const verify_password = bcrypt.compareSync(password, user.password);
@@ -125,111 +262,6 @@ exports.userLogin = async (req, res) => {
     res.status(500).json({ 
       status: false, 
       error: "An error occurred during login." 
-    });
-  }
-};
-
-exports.userRegister = async (req, res) => {
-  const fullUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
-  console.log(fullUrl);
-
-  try {
-    console.log('Request body---', req.body);
-    
-    // Validate input
-    const validateSchema = await authValidation.registerSchema.validateAsync(req.body);
-    const { title, userName, phoneNumber, nic, email, address, password, confirmPassword } = validateSchema;
-    
-    console.log('Registration attempt with phone:', phoneNumber);
-
-    // Check if passwords match
-    if (password !== confirmPassword) {
-      return res.status(400).json({ 
-        status: false, 
-        message: "Passwords do not match." 
-      });
-    }
-
-    // Check if user already exists by phone
-    const phoneExists = await authDAO.checkUserExistsByPhone(phoneNumber);
-    if (phoneExists) {
-      return res.status(409).json({ 
-        status: false, 
-        message: "User with this phone number already exists." 
-      });
-    }
-
-    // Check if user already exists by email
-    const emailExists = await authDAO.checkUserExistsByEmail(email);
-    if (emailExists) {
-      return res.status(409).json({ 
-        status: false, 
-        message: "User with this email already exists." 
-      });
-    }
-
-    // Check if user already exists by NIC
-    const nicExists = await authDAO.checkUserExistsByNIC(nic);
-    if (nicExists) {
-      return res.status(409).json({ 
-        status: false, 
-        message: "User with this NIC already exists." 
-      });
-    }
-
-    console.log('Hashing password...');
-    // Hash password
-    const hashedPassword = bcrypt.hashSync(password, 10);
-
-    // Create user data object
-    const userData = {
-      title,
-      userName,
-      phoneNumber,
-      phoneCode: '+94',
-      nic,
-      email,
-      address,
-      password: hashedPassword
-    };
-
-    // Create user in database
-    const newUser = await authDAO.createUser(userData);
-    console.log('User created successfully with ID:', newUser.id);
-
-    // Get full user data without password
-    const createdUser = await authDAO.getUserById(newUser.id);
-
-    return res.status(201).json({
-      success: true,
-      message: "User registered successfully.",
-      userData: {
-        id: createdUser.id,
-        title: createdUser.title,
-        userName: createdUser.userName,
-        phoneCode: createdUser.phoneCode,
-        phoneNumber: createdUser.phoneNumber,
-        email: createdUser.email,
-        nic: createdUser.nic,
-        address: createdUser.address,
-        createdAt: createdUser.createdAt
-      }
-    });
-
-  } catch (err) {
-    console.error("Error during registration:", err);
-    
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({ 
-        status: false, 
-        message: "Invalid input data.",
-        details: err.details 
-      });
-    }
-    
-    res.status(500).json({ 
-      status: false, 
-      error: "An error occurred during registration." 
     });
   }
 };
