@@ -15,6 +15,7 @@ app.use("/uploads", express.static("uploads"));
 //------------------------------- Routes Imports -------------------------------
 const heathRoutes = require("./routes/heath");
 const authRoutes = require("./routes/Auth");
+const investmentRoutes = require("./routes/investment");
 
 
 
@@ -75,6 +76,7 @@ marketPlace.getConnection((err, connection) => {
 //------------------------------- Routes -------------------------------
 app.use("", heathRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/investment", investmentRoutes);
 
 app.get("/test", (req, res) => {
   res.send("Test route is working 2/10!");
