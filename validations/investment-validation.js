@@ -1,5 +1,5 @@
 const Joi = require("joi");
 
-exports.deleteMarketPriceSchema = Joi.object({
-  id: Joi.number().integer().optional(),
+exports.getAllInvestmentSchema = Joi.object({
+  // No query params currently. Add pagination later if needed
 });
