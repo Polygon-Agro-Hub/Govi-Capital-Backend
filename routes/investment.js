@@ -4,7 +4,6 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
-router.get("/test", investmentEp.test);
-
+router.get("/get-all-investment", authMiddleware, investmentEp.getApprovedInvestmentCards);
 
 module.exports = router;
