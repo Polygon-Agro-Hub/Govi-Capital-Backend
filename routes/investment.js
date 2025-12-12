@@ -16,4 +16,10 @@ router.get(
     investmentEp.investmentRequestInfomation
 );
 
+router.post(
+    "/post-investment", 
+    authMiddleware, 
+    investmentEp.createInvestment
+);
+
 module.exports = router;
