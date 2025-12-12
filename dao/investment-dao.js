@@ -93,3 +93,32 @@ exports.getInvestmentRequestInfoByRequestId = async (requestId) => {
     });
   });
 };
+
+exports.createInvestment = async (payload) => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+      INSERT INTO investment 
+        (investerId, reqId, refCode, investerName, nic, nicFront, nicBack, shares, totInvt, expextreturnInvt, internalRate, bankSlip, invtStatus)
+      VALUES (?, ?, 'INV', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'To Review')
+    `;
+
+    const params = [
+      payload.investerId,
+      payload.reqId,
+      payload.investerName,
+      payload.nic,
+      payload.nicFront || null,
+      payload.nicBack || null,
+      payload.shares,
+      payload.totInvt,
+      payload.expextreturnInvt,
+      payload.internalRate,
+      payload.bankSlip || null,
+    ];
+
+    plantcare.query(sql, params, (err, result) => {
+      if (err) return reject(err);
+      resolve({ id: result.insertId });
+    });
+  });
+};
