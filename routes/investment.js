@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get(
     "/get-all-investment", 
-    authMiddleware, 
+    // authMiddleware, 
     investmentEp.getApprovedInvestmentCards
 );
 
