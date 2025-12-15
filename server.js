@@ -9,12 +9,13 @@ const port = process.env.PORT || 4000;
 app.use(cors({ origin: "*", }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static("uploads"));
+// app.use("/uploads", express.static("uploads"));
 
 
 //------------------------------- Routes Imports -------------------------------
 const heathRoutes = require("./routes/heath");
 const authRoutes = require("./routes/Auth");
+const investmentRoutes = require("./routes/investment");
 
 
 
@@ -75,6 +76,7 @@ marketPlace.getConnection((err, connection) => {
 //------------------------------- Routes -------------------------------
 app.use("", heathRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/investment", investmentRoutes);
 
 app.get("/test", (req, res) => {
   res.send("Test route is working 11/24!");
