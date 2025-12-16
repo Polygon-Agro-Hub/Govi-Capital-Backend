@@ -10,8 +10,8 @@ const upload = multer({
   fileFilter: function (req, file, cb) {
     // Allowed extensions for images and documents
     const imageExtensions = /jpeg|jpg|png|gif/i;
-    const documentExtensions = /csv|xlsx|xls/i;
-    
+    const documentExtensions = /csv|xlsx|xls|pdf/i;
+
     // Get file extension
     const extname = path.extname(file.originalname).toLowerCase().replace('.', '');
     
@@ -21,7 +21,8 @@ const upload = multer({
       'text/csv',
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/octet-stream'
+      'application/octet-stream',
+      'application/pdf'
     ];
     
     // Check if either image or document type matches
@@ -39,7 +40,7 @@ const upload = multer({
     if (isImage || isDocument) {
       cb(null, true);
     } else {
-      cb(new Error('Only images (JPEG, JPG, PNG, GIF) and documents (CSV, XLSX, XLS) are allowed'));
+      cb(new Error('Only images (JPEG, JPG, PNG, GIF) and documents (CSV, XLSX, XLS, PDF) are allowed'));
     }
   },
   limits: {

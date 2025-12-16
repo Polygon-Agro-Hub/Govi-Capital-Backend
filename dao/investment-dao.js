@@ -94,17 +94,50 @@ exports.getInvestmentRequestInfoByRequestId = async (requestId) => {
   });
 };
 
+exports.generateInvestmentRefCode = async () => {
+  return new Promise((resolve, reject) => {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const datePart = `${yy}${mm}${dd}`;
+    const prefix = `IR${datePart}`;
+
+    const sql = `
+      SELECT refCode
+      FROM investment
+      WHERE refCode LIKE CONCAT(?, '%')
+      ORDER BY refCode DESC
+      LIMIT 1
+    `;
+
+    plantcare.query(sql, [prefix], (err, rows) => {
+      if (err) return reject(err);
+      let nextSeq = 1;
+      if (rows && rows.length > 0 && rows[0].refCode) {
+        const last = rows[0].refCode; 
+        const seqStr = last.slice(prefix.length);
+        const seqNum = parseInt(seqStr, 10);
+        if (!isNaN(seqNum)) nextSeq = seqNum + 1;
+      }
+      const refCode = `${prefix}${String(nextSeq).padStart(5, '0')}`;
+      resolve(refCode);
+    });
+  });
+};
+
 exports.createInvestment = async (payload) => {
   return new Promise((resolve, reject) => {
     const sql = `
       INSERT INTO investment 
         (investerId, reqId, refCode, investerName, nic, nicFront, nicBack, shares, totInvt, expextreturnInvt, internalRate, bankSlip, invtStatus)
-      VALUES (?, ?, 'INV', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'To Review')
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'To Review')
     `;
 
     const params = [
       payload.investerId,
       payload.reqId,
+      payload.refCode,
       payload.investerName,
       payload.nic,
       payload.nicFront || null,
@@ -118,7 +151,7 @@ exports.createInvestment = async (payload) => {
 
     plantcare.query(sql, params, (err, result) => {
       if (err) return reject(err);
-      resolve({ id: result.insertId });
+      resolve({ id: result.insertId, refCode: payload.refCode });
     });
   });
 };

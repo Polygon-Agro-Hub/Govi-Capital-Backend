@@ -1,6 +1,7 @@
 const express = require("express");
 const investmentEp = require("../end-point/investment-ep");
 const authMiddleware = require("../middlewares/authMiddleware");
+const upload = require("../middlewares/uploadMiddleware");
 
 const router = express.Router();
 
@@ -18,7 +19,12 @@ router.get(
 
 router.post(
     "/post-investment", 
-    authMiddleware, 
+    authMiddleware,
+    upload.fields([
+      { name: 'nicFront', maxCount: 1 },
+      { name: 'nicBack', maxCount: 1 },
+      { name: 'bankSlip', maxCount: 1 },
+    ]), 
     investmentEp.createInvestment
 );
 
