@@ -19,15 +19,14 @@ exports.getInvestmentRequestVarietiesFull = async () => {
         COALESCE(air.defineShares, 0) AS defineShares,
         COALESCE((SELECT SUM(i.shares) FROM investment i WHERE i.reqId = ir.id AND i.invtStatus = 'Approved'), 0) AS existShare
       FROM investmentrequest ir
-      INNER JOIN cropgroup cg ON ir.cropId = cg.id
-      INNER JOIN users u ON ir.farmerId = u.id
+      INNER JOIN plant_care.cropgroup cg ON ir.cropId = cg.id
+      INNER JOIN plant_care.users u ON ir.farmerId = u.id
       LEFT JOIN approvedinvestmentrequest air ON ir.id = air.reqId
       WHERE ir.reqStatus = 'Approved'
       AND ir.publishStatus = 'Published'
       ORDER BY air.createdAt DESC;
-
     `;
-    plantcare.query(sql, [], (err, result) => {
+    investment.query(sql, [], (err, result) => {
       if (err) return reject(err);
       resolve(result);
     });
@@ -38,15 +37,17 @@ exports.getOngoingCultivationsForUser = async (userId) => {
   return new Promise((resolve, reject) => {
     const sql = `
       SELECT
-        cg.id,
-        cg.cropNameEnglish
-      FROM ongoingcultivations oc
-      LEFT JOIN ongoingcultivationscrops occ ON oc.id = occ.ongoingCultivationId
-      LEFT JOIN cropgroup cg ON occ.cropId = cg.id
-      WHERE oc.userId = ?
-      GROUP BY 
-          cg.id,
-          cg.cropNameEnglish;
+         cg.id,
+         cg.cropNameEnglish
+       FROM ongoingcultivations oc
+       LEFT JOIN ongoingcultivationscrops occ ON oc.id = occ.ongoingCultivationId
+       LEFT JOIN cropcalender cc ON occ.cropCalendar = cc.id
+       LEFT JOIN cropvariety cv ON cc.cropVarietyId = cv.id
+       LEFT JOIN cropgroup cg ON cv.cropGroupId = cg.id
+       WHERE oc.userId = ?
+       GROUP BY
+         cg.id,
+         cg.cropNameEnglish
     `;
     plantcare.query(sql, [userId], (err, rows) => {
       if (err) return reject(err);
@@ -68,7 +69,6 @@ exports.getInvestmentRequestInfoByRequestId = async (requestId) => {
         ir.expectedYield,
         ir.startDate,
         air.totValue,
-        cv.varietyNameEnglish,
         cg.cropNameEnglish,
         air.defineShares,
         air.minShare,
@@ -76,14 +76,13 @@ exports.getInvestmentRequestInfoByRequestId = async (requestId) => {
         (air.totValue / air.defineShares) AS oneShare,
         (SELECT SUM(i.shares) FROM investment i WHERE i.reqId = ir.id AND i.invtStatus = 'Approved') AS fillShares
       FROM investmentrequest ir
-      INNER JOIN users u ON ir.farmerId = u.id
+      INNER JOIN plant_care.users u ON ir.farmerId = u.id
       LEFT JOIN approvedinvestmentrequest air ON ir.id = air.reqId
-      INNER JOIN cropgroup cg ON ir.cropId = cg.id
-      INNER JOIN cropvariety cv ON cv.cropGroupId = cg.id
+      INNER JOIN plant_care.cropgroup cg ON ir.cropId = cg.id
       WHERE ir.id = ?;
     `;
 
-    plantcare.query(sql, [requestId], (err, rows) => {
+    investment.query(sql, [requestId], (err, rows) => {
       if (err) return reject(err);
       resolve(rows && rows.length > 0 ? rows[0] : null);
     });
@@ -107,7 +106,7 @@ exports.generateInvestmentRefCode = async () => {
       LIMIT 1
     `;
 
-    plantcare.query(sql, [prefix], (err, rows) => {
+    investment.query(sql, [prefix], (err, rows) => {
       if (err) return reject(err);
       let nextSeq = 1;
       if (rows && rows.length > 0 && rows[0].refCode) {
@@ -145,7 +144,7 @@ exports.createInvestment = async (payload) => {
       payload.bankSlip || null,
     ];
 
-    plantcare.query(sql, params, (err, result) => {
+    investment.query(sql, params, (err, result) => {
       if (err) return reject(err);
       resolve({ id: result.insertId, refCode: payload.refCode });
     });

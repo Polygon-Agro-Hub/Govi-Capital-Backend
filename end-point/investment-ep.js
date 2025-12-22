@@ -17,7 +17,6 @@ exports.getApprovedInvestmentCards = async (req, res) => {
 
 exports.investmentRequestInfomation = async (req, res) => {
   try {
-    // Validate requestId param
     const { error } = investmentValidation.getInvestmentRequestSchema.validate({ requestId: Number(req.params.requestId) });
     if (error) return res.status(400).json({ error: error.details[0].message });
 
@@ -29,6 +28,8 @@ exports.investmentRequestInfomation = async (req, res) => {
       await investmentDAO.getOngoingCultivationsForUser(
         investmentInfo.farmerId
       );
+
+    console.log(investmentInfo, ongoingCultivations);
     return res.status(200).json({ investmentInfo, ongoingCultivations });
   } catch (err) {
     console.error("Error executing query:", err);

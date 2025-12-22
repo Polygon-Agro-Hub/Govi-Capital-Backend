@@ -1,4 +1,4 @@
-const { admin, investment, collectionofficer, marketPlace, investment } = require("../startup/database");
+const { admin, collectionofficer, marketPlace, investment } = require("../startup/database");
 
 // Get user by phone number
 exports.loginUserByPhone = async (phoneNumber) => {
