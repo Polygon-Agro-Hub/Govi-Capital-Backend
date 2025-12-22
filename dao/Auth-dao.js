@@ -1,4 +1,4 @@
-const { admin, plantcare, collectionofficer, marketPlace, dash } = require("../startup/database");
+const { admin, investment, collectionofficer, marketPlace, investment } = require("../startup/database");
 
 // Get user by phone number
 exports.loginUserByPhone = async (phoneNumber) => {
@@ -13,7 +13,7 @@ exports.loginUserByPhone = async (phoneNumber) => {
       WHERE phoneNumber = ?
     `;
     
-    plantcare.query(sql, [normalizedPhone], (err, results) => {
+    investment.query(sql, [normalizedPhone], (err, results) => {
       if (err) {
         return reject(err);
       }
@@ -37,7 +37,7 @@ exports.getUserByEmail = async (email) => {
       WHERE email = ?
     `;
     
-    plantcare.query(sql, [email], (err, results) => {
+    investment.query(sql, [email], (err, results) => {
       if (err) {
         return reject(err);
       }
@@ -71,7 +71,7 @@ exports.createUser = async (userData) => {
       userData.password
     ];
     
-    plantcare.query(sql, values, (err, result) => {
+    investment.query(sql, values, (err, result) => {
       if (err) {
         return reject(err);
       }

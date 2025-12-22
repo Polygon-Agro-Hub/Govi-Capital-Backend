@@ -1,7 +1,7 @@
 const express = require('express');
 require("dotenv").config();
 const cors = require("cors");
-const { admin, plantcare, collectionofficer, marketPlace, dash } = require('./startup/database');
+const { admin, plantcare, collectionofficer, marketPlace, investment } = require('./startup/database');
 
 
 const app = express();
@@ -70,6 +70,16 @@ marketPlace.getConnection((err, connection) => {
     );
     connection.release();
 });
+
+investment.getConnection((err, connection) => {
+    if (err) {
+        console.error("Error connecting to the database in index.js (investments):", err);
+        return;
+    }
+    console.log("Connected to the MySQL database in server.js (investments).  ✅  ");
+    connection.release();
+});
+
 
 
 
