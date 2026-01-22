@@ -68,6 +68,7 @@ exports.getInvestmentRequestInfoByRequestId = async (requestId) => {
         ir.extentp,
         ir.expectedYield,
         ir.startDate,
+        ir.investment,
         air.totValue,
         cg.cropNameEnglish,
         air.defineShares,
