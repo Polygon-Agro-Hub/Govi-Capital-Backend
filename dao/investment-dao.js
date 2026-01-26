@@ -14,7 +14,7 @@ exports.getInvestmentRequestVarietiesFull = async () => {
         cg.image AS cropGroupImage,
         ir.farmerId,
         CONCAT(u.firstName, ' ', u.lastName) AS farmerName,
-        air.id AS approvedId,
+        ir.id AS approvedId,
         COALESCE(air.totValue, 0) AS totalValue,
         COALESCE(air.defineShares, 0) AS defineShares,
         COALESCE((SELECT SUM(i.shares) FROM investment i WHERE i.reqId = ir.id AND i.invtStatus = 'Approved'), 0) AS existShare
