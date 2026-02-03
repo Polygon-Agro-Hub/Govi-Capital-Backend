@@ -10,4 +10,9 @@ router.post('/login', authEp.userLogin);
 router.post('/register', authEp.registerUser);
 router.post('/check-user', authEp.checkUserExists);
 
+// Password reset routes
+router.post("/forgot-password", authEp.forgotPassword); // Send reset email
+router.get("/validate-reset-token/:token", authEp.validateResetToken); // Validate token
+router.put("/reset-password", authEp.resetPassword); // Reset password
+
 module.exports = router;
