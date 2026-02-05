@@ -14,5 +14,7 @@ router.post('/check-user', authEp.checkUserExists);
 router.post("/forgot-password", authEp.forgotPassword); // Send reset email
 router.get("/validate-reset-token/:token", authEp.validateResetToken); // Validate token
 router.put("/reset-password", authEp.resetPassword); // Reset password
+router.post("/check-phone", authEp.checkPhoneNumber);
+router.post("/reset-password-by-phone", authEp.resetPasswordByPhone);
 
 module.exports = router;

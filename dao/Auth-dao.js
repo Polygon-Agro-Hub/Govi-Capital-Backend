@@ -275,3 +275,57 @@ exports.resetPassword = (token, newPassword) => {
     });
   });
 };
+
+exports.getUserByPhoneNumberAuth = (phoneNumber) => {
+  console.log("Checking for user with phone number:", phoneNumber);
+  return new Promise((resolve, reject) => {
+    const sql = "SELECT * FROM investmentusers WHERE phoneNumber = ?";
+    investment.query(sql, [phoneNumber], (err, results) => {
+      if (err) {
+        console.error('Database error in getUserByPhoneNumber:', err);
+        reject({
+          status: false,
+          message: 'Database error while checking phone number',
+          error: err.message
+        });
+      } else {
+        console.log('Phone number query results:', results);
+        resolve(results[0] || null);
+      }
+    });
+  });
+};
+
+exports.updatePasswordByPhoneNumber = (phoneNumber, newPassword) => {
+  console.log("Updating password for phone number:", phoneNumber);
+  return new Promise((resolve, reject) => {
+    // Hash the password before saving
+    const hashedPassword = bcrypt.hashSync(newPassword, parseInt(process.env.SALT_ROUNDS));
+
+    const sql = "UPDATE investmentusers SET password = ? WHERE phoneNumber = ?";
+    investment.query(sql, [hashedPassword, phoneNumber], (err, results) => {
+      if (err) {
+        console.error('Database error in updatePasswordByPhoneNumber:', err);
+        reject({
+          status: false,
+          message: 'Database error while updating password',
+          error: err.message
+        });
+      } else {
+        console.log('Password update results:', results);
+        if (results.affectedRows > 0) {
+          resolve({
+            status: true,
+            message: 'Password updated successfully',
+            affectedRows: results.affectedRows
+          });
+        } else {
+          resolve({
+            status: false,
+            message: 'No user found with the provided phone number'
+          });
+        }
+      }
+    });
+  });
+};
