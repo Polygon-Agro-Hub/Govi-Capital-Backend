@@ -1,29 +1,32 @@
 const { admin, collectionofficer, marketPlace, investment } = require("../startup/database");
 const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
+const { resolve } = require("path");
+const { rejects } = require("assert");
+const { connected } = require("process");
 
 // Get user by phone number
 exports.loginUserByPhone = async (phoneNumber) => {
   return new Promise((resolve, reject) => {
     // Extract last 9 digits from input (e.g., 077xxxxxxxx -> 7xxxxxxxx)
     const normalizedPhone = phoneNumber.replace(/^0+/, '').substring(0, 9);
-    
+
     const sql = `
       SELECT id, title, userName, password, phoneCode, phoneNumber, 
              nic, email, address, createdAt 
       FROM investmentusers 
       WHERE phoneNumber = ?
     `;
-    
+
     investment.query(sql, [normalizedPhone], (err, results) => {
       if (err) {
         return reject(err);
       }
-      
+
       if (results.length === 0) {
         return resolve(null);
       }
-      
+
       resolve(results[0]);
     });
   });
@@ -53,7 +56,7 @@ exports.createUser = async (userData) => {
       (title, userName, phoneCode, phoneNumber, nic, email, address, password, createdAt) 
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
     `;
-    
+
     const values = [
       userData.title,
       userData.userName,
@@ -64,12 +67,12 @@ exports.createUser = async (userData) => {
       userData.address,
       userData.password
     ];
-    
+
     investment.query(sql, values, (err, result) => {
       if (err) {
         return reject(err);
       }
-      
+
       resolve(result.insertId);
     });
   });
@@ -329,3 +332,73 @@ exports.updatePasswordByPhoneNumber = (phoneNumber, newPassword) => {
     });
   });
 };
+
+exports.createResetPasswordInstance = (userId) => {
+  return new Promise((resolve, reject) => {
+    investment.getConnection((err, connection) => {
+      if (err) {
+        return reject(err);
+      }
+
+      connection.beginTransaction((beginErr) => {
+        if (beginErr) {
+          connection.release();
+          return reject(beginErr);
+        }
+
+        // Validate userId (optional but recommended)
+        if (!userId) {
+          connection.release();
+          return reject(new Error('User ID is required'));
+        }
+
+        const expiryTime = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
+
+        // Step 1: Delete any existing reset token for this user
+        const deleteExistingSql = "DELETE FROM resetpasswordtoken WHERE userId = ?";
+        
+        connection.query(deleteExistingSql, [userId], (deleteErr) => {
+          if (deleteErr) {
+            return rollbackAndRelease(connection, deleteErr, reject);
+          }
+
+          // Step 2: Insert new reset token
+          const insertSql = `
+            INSERT INTO resetpasswordtoken (userId, resetPasswordExpires) 
+            VALUES (?, ?)
+          `;
+
+          connection.query(insertSql, [userId, expiryTime], (insertErr, insertResults) => {
+            if (insertErr) {
+              return rollbackAndRelease(connection, insertErr, reject);
+            }
+
+            connection.commit((commitErr) => {
+              if (commitErr) {
+                return rollbackAndRelease(connection, commitErr, reject);
+              }
+
+              connection.release();
+              resolve({
+                success: true,
+                userId: userId,
+                expiresAt: expiryTime,
+                message: 'Reset token created successfully'
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
+// Helper function for rollback
+function rollbackAndRelease(connection, error, reject) {
+  connection.rollback(() => {
+    connection.release();
+    reject(error);
+  });
+}
+
+
