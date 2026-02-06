@@ -664,7 +664,14 @@ exports.checkPhoneNumber = async (req, res) => {
     const user = await authDAO.getUserByPhoneNumberAuth(phoneNumber);    
     if (user) {
       const result = await authDAO.createResetPasswordInstance(user.id);
-      return res.status(200).json({ exists: true });
+      
+      return res.status(200).json({ 
+        exists: true, 
+        userId: user.id,
+        phoneNumber: user.phoneNumber,
+        phoneCode: user.phoneCode || '+94',
+        expiresAt: result.expiresAt
+      });
     } else {
       return res.status(404).json({ exists: false });
     }
