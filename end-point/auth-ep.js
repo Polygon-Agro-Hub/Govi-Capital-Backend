@@ -663,14 +663,15 @@ exports.checkPhoneNumber = async (req, res) => {
   try {
     const user = await authDAO.getUserByPhoneNumberAuth(phoneNumber);    
     if (user) {
-      const result = await authDAO.createResetPasswordInstance(user.id);
+      
+      const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
       
       return res.status(200).json({ 
         exists: true, 
         userId: user.id,
         phoneNumber: user.phoneNumber,
         phoneCode: user.phoneCode || '+94',
-        expiresAt: result.expiresAt
+        expiresAt: expiresAt
       });
     } else {
       return res.status(404).json({ exists: false });
